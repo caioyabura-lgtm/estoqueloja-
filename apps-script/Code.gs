@@ -1,98 +1,107 @@
-const SHEET_NAME = "Produtos";
+const SHEET_ID = 'https://script.google.com/macros/s/AKfycbxYBBNIIYHWLd-ZLt8hHoYz6evdznEpDVAR6txvTjDSvBCO7U5zsUq-Z1zl1FNayioA/exec'
 
-function doGet() {
-  return ContentService
-    .createTextOutput(JSON.stringify({
-      status: "ok",
-      message: "API do Estoque Atelie ativa",
-      timestamp: new Date().toISOString(),
-    }))
+function doGet(e) {
+  const action = e?.parameter?.action || '';
+
+  if (action === 'products') {
+    return json(getProducts());
+  }
+
+  if (action === 'productByBarcode') {
+    return json(getProductByBarcode(e.parameter.barcode));
+  }
+
+  return json([]);
+}
+
+function doPost(e) {
+  const body = JSON.parse(e.postData.contents);
+
+  if (body.action === 'createProduct') {
+    return json(createProduct(body.payload));
+  }
+
+  if (body.action === 'moveStock') {
+    return json(moveStock(body.payload));
+  }
+
+  return json({ error: 'ação inválida' });
+}
+
+function json(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function listProducts() {
-  const sheet = getOrCreateSheet_();
-  const values = sheet.getDataRange().getValues();
+function sheet(name) {
+  return SpreadsheetApp.openById(SHEET_ID).getSheetByName(name);
+}
 
-  if (values.length <= 1) {
-    return [];
-  }
-
+function getProducts() {
+  const s = sheet('produtos');
+  const values = s.getDataRange().getValues();
   const headers = values[0];
-  return values.slice(1).map((row) => {
-    const item = {};
-    headers.forEach((header, index) => {
-      item[header] = row[index];
-    });
-    return item;
+
+  return values.slice(1).map(r => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = r[i]);
+    return obj;
   });
 }
 
-function saveProduct(product) {
-  const sheet = getOrCreateSheet_();
-  const payload = normalizeProduct_(product);
+function getProductByBarcode(code) {
+  const list = getProducts();
+  return list.find(p => String(p.codigo) === String(code)) || null;
+}
 
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow([
-      "id",
-      "name",
-      "barcode",
-      "category",
-      "size",
-      "color",
-      "price",
-      "stock",
-      "minimum",
-      "notes",
-      "updatedAt",
-    ]);
-  }
+function createProduct(p) {
+  const s = sheet('produtos');
 
-  sheet.appendRow([
-    payload.id,
-    payload.name,
-    payload.barcode,
-    payload.category,
-    payload.size,
-    payload.color,
-    payload.price,
-    payload.stock,
-    payload.minimum,
-    payload.notes,
-    payload.updatedAt,
+  s.appendRow([
+    Utilities.getUuid(),
+    p.nome,
+    p.codigo,
+    p.categoria,
+    p.tamanho,
+    p.cor,
+    Number(p.preco || 0),
+    Number(p.estoque || 0),
+    Number(p.minimo || 0)
   ]);
 
-  return {
-    status: "saved",
-    product: payload,
-  };
+  return { ok: true };
 }
 
-function getOrCreateSheet_() {
-  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = spreadsheet.getSheetByName(SHEET_NAME);
+function moveStock(p) {
+  const s = sheet('produtos');
+  const m = sheet('movimentacoes');
 
-  if (!sheet) {
-    sheet = spreadsheet.insertSheet(SHEET_NAME);
+  const values = s.getDataRange().getValues();
+  const headers = values[0];
+
+  const codigoCol = headers.indexOf('codigo');
+  const estoqueCol = headers.indexOf('estoque');
+
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][codigoCol] == p.codigo) {
+      let estoque = Number(values[i][estoqueCol]);
+
+      if (p.tipo === 'entrada') estoque += Number(p.quantidade);
+      if (p.tipo === 'saida') estoque -= Number(p.quantidade);
+
+      s.getRange(i + 1, estoqueCol + 1).setValue(estoque);
+
+      m.appendRow([
+        new Date(),
+        p.tipo,
+        p.codigo,
+        p.quantidade,
+        estoque
+      ]);
+
+      return { estoque };
+    }
   }
 
-  return sheet;
-}
-
-function normalizeProduct_(product) {
-  const input = product || {};
-
-  return {
-    id: input.id || Utilities.getUuid(),
-    name: input.name || "",
-    barcode: input.barcode || "",
-    category: input.category || "",
-    size: input.size || "",
-    color: input.color || "",
-    price: Number(input.price || 0),
-    stock: Number(input.stock || 0),
-    minimum: Number(input.minimum || 0),
-    notes: input.notes || "",
-    updatedAt: new Date().toISOString(),
-  };
+  throw new Error('Produto não encontrado');
 }

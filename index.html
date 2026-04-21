@@ -1,88 +1,35 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ateliê Estoque</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta charset="UTF-8">
+  <title>Estoque</title>
 </head>
 <body>
-  <main class="app">
-    <header class="topbar">
-      <div>
-        <h1>Ateliê Estoque</h1>
-        <p>Controle simples de produtos, movimentação e etiquetas</p>
-      </div>
-    </header>
 
-    <section class="card">
-      <h2>Cadastrar produto</h2>
-      <form id="productForm" class="grid">
-        <input name="nome" placeholder="Nome da peça" required />
-        <input name="codigo" placeholder="Código de barras" />
-        <input name="categoria" placeholder="Categoria" />
-        <input name="tamanho" placeholder="Tamanho" />
-        <input name="cor" placeholder="Cor" />
-        <input name="preco" type="number" step="0.01" placeholder="Preço" />
-        <input name="estoque" type="number" placeholder="Estoque inicial" value="0" />
-        <input name="minimo" type="number" placeholder="Estoque mínimo" value="1" />
-        <textarea name="observacoes" placeholder="Observações"></textarea>
-        <button type="submit">Salvar produto</button>
-      </form>
-    </section>
+<h2>Cadastrar Produto</h2>
 
-    <section class="card">
-      <h2>Movimentação</h2>
-      <form id="movementForm" class="grid">
-        <select name="tipo" required>
-          <option value="entrada">Entrada</option>
-          <option value="saida">Saída</option>
-          <option value="ajuste_mais">Ajuste +</option>
-          <option value="ajuste_menos">Ajuste -</option>
-        </select>
-        <input name="codigo" placeholder="Código de barras" required />
-        <input name="quantidade" type="number" min="1" value="1" required />
-        <input name="motivo" placeholder="Motivo" />
-        <textarea name="observacoes" placeholder="Observações"></textarea>
-        <button type="submit">Salvar movimentação</button>
-      </form>
-      <div id="movementFeedback" class="feedback"></div>
-    </section>
+<form id="formProduto">
+  <input name="nome" placeholder="Nome" required>
+  <input name="codigo" placeholder="Código">
+  <input name="estoque" type="number" placeholder="Estoque">
+  <button>Salvar</button>
+</form>
 
-    <section class="card">
-      <h2>Etiquetas</h2>
-      <form id="labelForm" class="grid">
-        <input id="labelBarcode" placeholder="Código do produto" required />
-        <select id="labelSize">
-          <option value="58x40">58 x 40 mm</option>
-          <option value="80x50">80 x 50 mm</option>
-        </select>
-        <button type="submit">Gerar etiqueta</button>
-        <button type="button" id="printLabelBtn">Imprimir</button>
-      </form>
-      <div id="labelPreview" class="label-preview">Selecione um produto para montar a etiqueta.</div>
-    </section>
+<h2>Movimentação</h2>
 
-    <section class="card">
-      <h2>Produtos</h2>
-      <input id="productSearch" placeholder="Buscar produto..." />
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Código</th>
-              <th>Estoque</th>
-              <th>Mínimo</th>
-              <th>Preço</th>
-            </tr>
-          </thead>
-          <tbody id="productsTableBody"></tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+<form id="formMov">
+  <select name="tipo">
+    <option value="entrada">Entrada</option>
+    <option value="saida">Saída</option>
+  </select>
+  <input name="codigo" placeholder="Código">
+  <input name="quantidade" type="number" value="1">
+  <button>Enviar</button>
+</form>
 
-  <script src="app.js"></script>
+<h2>Produtos</h2>
+<ul id="lista"></ul>
+
+<script src="app.js"></script>
 </body>
 </html>
