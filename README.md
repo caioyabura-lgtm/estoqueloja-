@@ -26,6 +26,14 @@ estoque-atelie/
 2. Continue usando o sistema local normalmente.
 3. Quando quiser evoluir para armazenamento em nuvem, use a pasta `apps-script`.
 
+## Endpoint do Apps Script
+
+O front-end esta apontando para o deployment:
+
+`https://script.google.com/macros/s/AKfycbxotb3SBmovYRv01XL9hj2PMOcPb6f3YxtYk3UiO1uQ5xDvfCjlqrm_mdFijpqqzL64/exec`
+
+Se voce publicar uma nova versao do Apps Script no futuro, basta atualizar essa URL em `app.js`.
+
 ## Observacao
 
 Neste momento, o front-end continua funcionando localmente com `localStorage`.

@@ -1,51 +1,58 @@
-const SHEET_ID = 'https://script.google.com/macros/s/AKfycbxYBBNIIYHWLd-ZLt8hHoYz6evdznEpDVAR6txvTjDSvBCO7U5zsUq-Z1zl1FNayioA/exec'
+const SHEET_ID = '1pI1_-plyUii8QfxRzWZ39ExZ89orCh4DQzMQHlIDXJU'
 
 function doGet(e) {
   const action = e?.parameter?.action || '';
 
   if (action === 'products') {
-    return json(getProducts());
+    return output({ ok: true, data: getProducts() });
   }
 
   if (action === 'productByBarcode') {
-    return json(getProductByBarcode(e.parameter.barcode));
+    const barcode = e?.parameter?.barcode || '';
+    return output({ ok: true, data: getProductByBarcode(barcode) });
   }
 
-  return json([]);
+  return output({ ok: false });
 }
 
+// 👇 CORREÇÃO PRINCIPAL AQUI
 function doPost(e) {
-  const body = JSON.parse(e.postData.contents);
+  const body = JSON.parse(e.postData.contents || '{}');
 
   if (body.action === 'createProduct') {
-    return json(createProduct(body.payload));
+    createProduct(body.payload);
+    return output({ ok: true });
   }
 
   if (body.action === 'moveStock') {
-    return json(moveStock(body.payload));
+    const result = moveStock(body.payload);
+    return output({ ok: true, data: result });
   }
 
-  return json({ error: 'ação inválida' });
+  return output({ ok: false });
 }
 
-function json(data) {
-  return ContentService.createTextOutput(JSON.stringify(data))
+function output(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-function sheet(name) {
+function getSheet(name) {
   return SpreadsheetApp.openById(SHEET_ID).getSheetByName(name);
 }
 
 function getProducts() {
-  const s = sheet('produtos');
-  const values = s.getDataRange().getValues();
-  const headers = values[0];
+  const s = getSheet('produtos');
+  const v = s.getDataRange().getValues();
+  if (v.length < 2) return [];
 
-  return values.slice(1).map(r => {
-    let obj = {};
-    headers.forEach((h, i) => obj[h] = r[i]);
-    return obj;
+  const h = v[0];
+
+  return v.slice(1).map(r => {
+    let o = {};
+    h.forEach((k, i) => o[k] = r[i]);
+    return o;
   });
 }
 
@@ -55,36 +62,35 @@ function getProductByBarcode(code) {
 }
 
 function createProduct(p) {
-  const s = sheet('produtos');
+  const s = getSheet('produtos');
 
   s.appendRow([
     Utilities.getUuid(),
-    p.nome,
-    p.codigo,
-    p.categoria,
-    p.tamanho,
-    p.cor,
+    p.nome || '',
+    p.codigo || '',
+    p.categoria || '',
+    p.tamanho || '',
+    p.cor || '',
     Number(p.preco || 0),
     Number(p.estoque || 0),
     Number(p.minimo || 0)
   ]);
-
-  return { ok: true };
 }
 
 function moveStock(p) {
-  const s = sheet('produtos');
-  const m = sheet('movimentacoes');
+  const s = getSheet('produtos');
+  const m = getSheet('movimentacoes');
 
-  const values = s.getDataRange().getValues();
-  const headers = values[0];
+  const v = s.getDataRange().getValues();
+  const h = v[0];
 
-  const codigoCol = headers.indexOf('codigo');
-  const estoqueCol = headers.indexOf('estoque');
+  const codigoCol = h.indexOf('codigo');
+  const estoqueCol = h.indexOf('estoque');
 
-  for (let i = 1; i < values.length; i++) {
-    if (values[i][codigoCol] == p.codigo) {
-      let estoque = Number(values[i][estoqueCol]);
+  for (let i = 1; i < v.length; i++) {
+    if (String(v[i][codigoCol]) === String(p.codigo)) {
+
+      let estoque = Number(v[i][estoqueCol]);
 
       if (p.tipo === 'entrada') estoque += Number(p.quantidade);
       if (p.tipo === 'saida') estoque -= Number(p.quantidade);
@@ -99,7 +105,7 @@ function moveStock(p) {
         estoque
       ]);
 
-      return { estoque };
+      return { estoqueDepois: estoque };
     }
   }
 
